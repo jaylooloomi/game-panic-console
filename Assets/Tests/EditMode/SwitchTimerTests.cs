@@ -27,6 +27,15 @@ public class SwitchTimerTests
         Assert.AreEqual(15f, t.Remaining, 0.001f);
     }
 
+    [Test] public void IntervalScaleShortensInterval()
+    {
+        var t = new SwitchTimer(3f, 0.5f);
+        Assert.AreEqual(10f, t.Remaining, 0.001f); // 20 * 0.5
+        t.Tick(10f); // -> round 2 (1-3 輪皆 20) * 0.5
+        Assert.AreEqual(2, t.Round);
+        Assert.AreEqual(10f, t.Remaining, 0.001f);
+    }
+
     [Test] public void WarningFiresOnceWhenCrossingThreshold()
     {
         var t = new SwitchTimer();

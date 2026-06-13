@@ -6,8 +6,8 @@ namespace PanicConsole.Minigames
     public class DinoSim : MinigameBase
     {
         public float SpawnDistance = 20f;
-        public float ScrollSpeed = 8f;
-        public float JumpDuration = 0.5f;
+        public float ScrollSpeed = 6f;   // 放寬：障礙慢一點，新玩家較易反應
+        public float JumpDuration = 0.6f; // 放寬：跳躍滯空久一點，判定更寬鬆
 
         public float ObstacleX { get; private set; }
         public bool IsAirborne => _airborne > 0f;

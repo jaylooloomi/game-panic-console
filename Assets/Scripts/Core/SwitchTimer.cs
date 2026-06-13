@@ -13,13 +13,17 @@ namespace PanicConsole.Core
         public event Action OnWarning; // 進入倒數 3 秒時觸發一次
         public event Action OnSwitch;  // 倒數歸零時觸發
 
+        /// <summary>切換間隔縮放（1 = 規格的 20/15/10；用於試玩調校節奏）。</summary>
+        public float IntervalScale { get; }
+
         private bool _warningFired;
 
-        public SwitchTimer(float warningSeconds = 3f)
+        public SwitchTimer(float warningSeconds = 3f, float intervalScale = 1f)
         {
             WarningSeconds = warningSeconds;
+            IntervalScale = intervalScale <= 0f ? 1f : intervalScale;
             Round = 1;
-            Remaining = IntervalForRound(Round);
+            Remaining = IntervalForRound(Round) * IntervalScale;
         }
 
         public static float IntervalForRound(int round)
@@ -43,7 +47,7 @@ namespace PanicConsole.Core
             if (Remaining <= 0f)
             {
                 Round++;
-                Remaining = IntervalForRound(Round);
+                Remaining = IntervalForRound(Round) * IntervalScale;
                 _warningFired = false;
                 OnSwitch?.Invoke();
             }

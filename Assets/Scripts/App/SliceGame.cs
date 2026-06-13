@@ -32,6 +32,9 @@ namespace PanicConsole.App
         Text _banner;        // 切換警報 / Game Over
         int _lastHp;
 
+        // 切換節奏縮放（1 = 規格 20/15/10）。切片預設較快讓玩家快速體驗輪替，可用 [ ] 即時調。
+        float _switchScale = 0.5f;
+
         void Awake()
         {
             BuildUi();
@@ -81,7 +84,7 @@ namespace PanicConsole.App
             // 底部控制提示
             UiFactory.Label(canvas.transform, "controls", 16, TextAnchor.MiddleCenter,
                 new Vector2(0f, 0.01f), new Vector2(1f, 0.1f)).text =
-                "前台操作 → 恐龍: Space/↑ 跳   蛇: 方向鍵   鋼琴: A/S/D/F     |     R: 重新開始";
+                "前台操作 → 恐龍: Space/↑ 跳   蛇: 方向鍵   鋼琴: A/S/D/F     |     R: 重新開始     |     [ / ] : 切換變快/變慢";
         }
 
         static Color PanelBg(Color c, bool focused)
@@ -96,7 +99,7 @@ namespace PanicConsole.App
             _snake = new SnakeSim();
             _piano = new PianoSim();
             var games = new List<IMinigame> { _dino, _snake, _piano };
-            var timer = new SwitchTimer();
+            var timer = new SwitchTimer(3f, _switchScale);
             var state = new MatchState();
             _engine = new SwitchEngine(games, timer, state);
 
@@ -119,6 +122,16 @@ namespace PanicConsole.App
         void Update()
         {
             float dt = Time.deltaTime;
+
+            // 即時調校切換節奏（會重開一局套用）
+            if (Input.GetKeyDown(KeyCode.LeftBracket))
+            {
+                _switchScale = Mathf.Max(0.2f, _switchScale - 0.1f); Restart(); return;
+            }
+            if (Input.GetKeyDown(KeyCode.RightBracket))
+            {
+                _switchScale = Mathf.Min(1.5f, _switchScale + 0.1f); Restart(); return;
+            }
 
             if (_engine.State.IsGameOver)
             {
@@ -170,8 +183,9 @@ namespace PanicConsole.App
             var s = _engine.State;
             var t = _engine.Timer;
             string warn = t.WarningActive ? "   ⚠ 即將切換！" : "";
+            float baseInterval = SwitchTimer.IntervalForRound(t.Round) * t.IntervalScale;
             _hud.text =
-                $"HP {s.Hp}/{s.MaxHp}    生存 {s.SurvivalTime:0.0}s    {t.Remaining:0.0}s 後切換 (Round {t.Round}){warn}\n" +
+                $"HP {s.Hp}/{s.MaxHp}    生存 {s.SurvivalTime:0.0}s    {t.Remaining:0.0}s 後切換（每輪約 {baseInterval:0.0}s）{warn}\n" +
                 $"▶ 現在操作：{ActiveName()}  —  {ActiveHint()}";
             _hud.color = t.WarningActive ? new Color(1f, 0.4f, 0.4f) : Color.white;
         }
