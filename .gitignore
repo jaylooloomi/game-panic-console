@@ -36,6 +36,11 @@ desktop.ini
 # 保留手寫的 dotnet 測試專案檔（Unity 自動產生的 *.csproj 仍被上面規則忽略）
 !tools/**/*.csproj
 
+# --- 打包輸出與暫存 log / 測試結果 ---
+[Bb]uild/
+*.log
+tools/*.xml
+
 # --- Doc-processing temp artifacts ---
 _pdf_imgs/
 _docx_dump.txt

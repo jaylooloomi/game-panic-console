@@ -1,0 +1,7 @@
+﻿<Solution>
+  <Project Path="PanicConsole.Tests.EditMode.csproj" />
+  <Project Path="PanicConsole.Minigames.csproj" />
+  <Project Path="PanicConsole.Core.csproj" />
+  <Project Path="Assembly-CSharp.csproj" />
+  <Project Path="Assembly-CSharp-Editor.csproj" />
+</Solution>
