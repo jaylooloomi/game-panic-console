@@ -1,0 +1,6 @@
+{
+    "name": "PanicConsole.Minigames",
+    "rootNamespace": "PanicConsole.Minigames",
+    "references": ["PanicConsole.Core"],
+    "autoReferenced": true
+}

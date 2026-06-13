@@ -30,6 +30,12 @@ crashlytics-build.properties
 Thumbs.db
 desktop.ini
 
+# --- .NET (tools/ dotnet test harness) ---
+[Bb]in/
+[Oo]bj/
+# 保留手寫的 dotnet 測試專案檔（Unity 自動產生的 *.csproj 仍被上面規則忽略）
+!tools/**/*.csproj
+
 # --- Doc-processing temp artifacts ---
 _pdf_imgs/
 _docx_dump.txt

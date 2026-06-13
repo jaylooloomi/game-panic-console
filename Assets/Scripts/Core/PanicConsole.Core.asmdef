@@ -1,0 +1,6 @@
+{
+    "name": "PanicConsole.Core",
+    "rootNamespace": "PanicConsole.Core",
+    "references": [],
+    "autoReferenced": true
+}
