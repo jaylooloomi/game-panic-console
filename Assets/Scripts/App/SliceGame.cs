@@ -170,7 +170,9 @@ namespace PanicConsole.App
             var s = _engine.State;
             var t = _engine.Timer;
             string warn = t.WarningActive ? "   ⚠ 即將切換！" : "";
-            _hud.text = $"HP {s.Hp}/{s.MaxHp}    生存 {s.SurvivalTime:0.0}s    Round {t.Round} ({t.Remaining:0.0}s){warn}";
+            _hud.text =
+                $"HP {s.Hp}/{s.MaxHp}    生存 {s.SurvivalTime:0.0}s    {t.Remaining:0.0}s 後切換 (Round {t.Round}){warn}\n" +
+                $"▶ 現在操作：{ActiveName()}  —  {ActiveHint()}";
             _hud.color = t.WarningActive ? new Color(1f, 0.4f, 0.4f) : Color.white;
         }
 
@@ -187,9 +189,38 @@ namespace PanicConsole.App
             RenderSnake(1, _engine.FocusIndex == 1);
             RenderPiano(2, _engine.FocusIndex == 2);
 
-            _panelLabels[0].text = (_engine.FocusIndex == 0 ? "▶ " : "") + "恐龍 Dino";
-            _panelLabels[1].text = (_engine.FocusIndex == 1 ? "▶ " : "") + "貪食蛇 Snake";
-            _panelLabels[2].text = (_engine.FocusIndex == 2 ? "▶ " : "") + "鋼琴 Piano";
+            SetPanelLabel(0, "恐龍 Dino");
+            SetPanelLabel(1, "貪食蛇 Snake");
+            SetPanelLabel(2, "鋼琴 Piano");
+        }
+
+        void SetPanelLabel(int i, string name)
+        {
+            bool focused = _engine.FocusIndex == i;
+            _panelLabels[i].text = focused ? ("▶ " + name + "\n← 你正在操作") : (name + "\n（背景）");
+            _panelLabels[i].color = focused ? Color.white : new Color(1f, 1f, 1f, 0.4f);
+        }
+
+        string ActiveName()
+        {
+            switch (_engine.Focused.GameId)
+            {
+                case "dino": return "恐龍";
+                case "snake": return "貪食蛇";
+                case "piano": return "鋼琴";
+                default: return "?";
+            }
+        }
+
+        string ActiveHint()
+        {
+            switch (_engine.Focused.GameId)
+            {
+                case "dino": return "Space / ↑ 跳";
+                case "snake": return "方向鍵 移動";
+                case "piano": return "A / S / D / F 點擊";
+                default: return "";
+            }
         }
 
         Image Pooled(int panel, int index, Color color)

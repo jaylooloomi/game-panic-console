@@ -38,6 +38,15 @@ public class SnakeSimTests
         Assert.IsTrue(failed);
     }
 
+    [Test] public void BackgroundDoesNotFailAtWall()
+    {
+        // 背景的蛇撞牆時應原地停住、不扣血（避免玩家無法操控卻冤死）
+        var s = new SnakeSim { Width = 10, Height = 10 }; s.Reset(); s.OnBlur();
+        bool failed = false; s.OnFail += _ => failed = true;
+        for (int i = 0; i < 200; i++) s.Tick(s.StepInterval * 4f, false);
+        Assert.IsFalse(failed);
+    }
+
     [Test] public void CannotReverseDirection()
     {
         var s = new SnakeSim(); s.Reset(); s.OnFocus(); // moving right

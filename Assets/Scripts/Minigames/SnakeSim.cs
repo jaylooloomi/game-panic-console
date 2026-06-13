@@ -49,17 +49,25 @@ namespace PanicConsole.Minigames
             while (_acc >= StepInterval)
             {
                 _acc -= StepInterval;
-                if (!Step()) { _acc = 0f; break; }
+                if (!Step(isFocused)) { _acc = 0f; break; }
             }
         }
 
-        private bool Step()
+        private bool Step(bool isFocused)
         {
             var head = _body[0];
             int nx = head.X + DirX, ny = head.Y + DirY;
-            if (nx < 0 || nx >= Width || ny < 0 || ny >= Height) { TriggerFail(); return false; }
-            for (int i = 0; i < _body.Count - 1; i++) // 撞自己（尾巴會讓位故排除）
-                if (_body[i].X == nx && _body[i].Y == ny) { TriggerFail(); return false; }
+
+            bool blocked = nx < 0 || nx >= Width || ny < 0 || ny >= Height;
+            if (!blocked)
+                for (int i = 0; i < _body.Count - 1; i++) // 撞自己（尾巴會讓位故排除）
+                    if (_body[i].X == nx && _body[i].Y == ny) { blocked = true; break; }
+
+            if (blocked)
+            {
+                if (isFocused) { TriggerFail(); return false; } // 前台撞牆/自身才失敗
+                return true; // 背景：原地停住、不扣血（避免無法操控卻冤死）
+            }
 
             _body.Insert(0, new Cell(nx, ny));
             if (nx == Food.X && ny == Food.Y) RespawnFood();
