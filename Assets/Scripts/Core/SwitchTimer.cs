@@ -17,6 +17,11 @@ namespace PanicConsole.Core
         public float IntervalScale { get; }
 
         private bool _warningFired;
+        private float _freeze; // 凍結卡：暫停切換倒數的剩餘秒數
+
+        /// <summary>凍結切換倒數一段時間（卡牌效果）。</summary>
+        public void Freeze(float seconds) { if (seconds > _freeze) _freeze = seconds; }
+        public bool IsFrozen => _freeze > 0f;
 
         public SwitchTimer(float warningSeconds = 3f, float intervalScale = 1f)
         {
@@ -36,6 +41,7 @@ namespace PanicConsole.Core
         public void Tick(float dt)
         {
             if (dt < 0f) throw new ArgumentOutOfRangeException(nameof(dt));
+            if (_freeze > 0f) { _freeze -= dt; return; } // 凍結期間不倒數、不切換
             Remaining -= dt;
 
             if (!_warningFired && Remaining <= WarningSeconds)

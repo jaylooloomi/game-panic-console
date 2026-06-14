@@ -58,6 +58,18 @@ public class SwitchTimerTests
         Assert.AreEqual(20f, t.Remaining, 0.001f); // round 2 still 20
     }
 
+    [Test] public void FreezePausesCountdown()
+    {
+        var t = new SwitchTimer();
+        t.Freeze(2f);
+        t.Tick(1f);   // 凍結中
+        Assert.AreEqual(20f, t.Remaining, 0.001f);
+        t.Tick(1.5f); // 此 tick 入口仍凍結
+        Assert.AreEqual(20f, t.Remaining, 0.001f);
+        t.Tick(5f);   // 解凍後正常倒數
+        Assert.AreEqual(15f, t.Remaining, 0.001f);
+    }
+
     [Test] public void WarningReArmsAfterSwitch()
     {
         // 以小步前進（接近真實逐幀），避免單一大步同時跨越警報與切換

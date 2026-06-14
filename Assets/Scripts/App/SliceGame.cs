@@ -44,6 +44,11 @@ namespace PanicConsole.App
         float _shakeTime;                            // 切換警報抖動計時（秒）
         float _bestSurvival;                         // 最佳生存秒數（PlayerPrefs 持久化）
 
+        // 卡牌系統
+        CardEngine _cards;
+        int _lastScore;
+        float _slowTime; // 慢動作卡剩餘秒數
+
         void Awake()
         {
             _bestSurvival = PlayerPrefs.GetFloat("best_survival", 0f);
@@ -85,8 +90,8 @@ namespace PanicConsole.App
                     new Vector2(0f, 0.9f), new Vector2(1f, 1f));
             }
 
-            _hud = UiFactory.Label(canvas.transform, "hud", 26, TextAnchor.MiddleCenter,
-                new Vector2(0f, 0.86f), new Vector2(1f, 0.99f));
+            _hud = UiFactory.Label(canvas.transform, "hud", 21, TextAnchor.UpperCenter,
+                new Vector2(0f, 0.85f), new Vector2(1f, 1f));
             _banner = UiFactory.Label(canvas.transform, "banner", 40, TextAnchor.MiddleCenter,
                 new Vector2(0f, 0.4f), new Vector2(1f, 0.6f));
             _banner.color = new Color(1f, 0.3f, 0.4f);
@@ -95,7 +100,7 @@ namespace PanicConsole.App
             // 底部控制提示
             UiFactory.Label(canvas.transform, "controls", 16, TextAnchor.MiddleCenter,
                 new Vector2(0f, 0.01f), new Vector2(1f, 0.1f)).text =
-                "恐龍:Space/↑  蛇:方向鍵  鋼琴:A/S/D/F  方塊:←→↑↓   |   R:重開  [/]:切換快慢   2:對戰下樓梯  3:對戰爆爆王";
+                "恐龍:Space/↑ 蛇:方向鍵 鋼琴:A/S/D/F 方塊:←→↑↓ | Z/X/C:出牌 R:重開 [/]:快慢 2:下樓梯對戰 3:爆爆王對戰";
         }
 
         static Color PanelBg(Color c, bool focused)
@@ -144,6 +149,11 @@ namespace PanicConsole.App
             _banner.text = "";
             for (int i = 0; i < _panelFlash.Length; i++) _panelFlash[i] = 0f;
             _shakeTime = 0f;
+
+            _cards = new CardEngine();
+            _cards.Reset();
+            _lastScore = 0;
+            _slowTime = 0f;
         }
 
         void Restart()
@@ -185,8 +195,21 @@ namespace PanicConsole.App
 
             if (Input.GetKeyDown(KeyCode.R)) { Restart(); return; }
 
+            // 出牌（Z/X/C 對應手牌 1/2/3）
+            if (Input.GetKeyDown(KeyCode.Z)) PlayCard(0);
+            if (Input.GetKeyDown(KeyCode.X)) PlayCard(1);
+            if (Input.GetKeyDown(KeyCode.C)) PlayCard(2);
+
+            // 慢動作卡：放慢小遊戲模擬（切換倒數不受影響）
+            float simDt = dt;
+            if (_slowTime > 0f) { _slowTime = Mathf.Max(0f, _slowTime - dt); simDt = dt * 0.4f; }
+
             RouteInput();
-            _engine.Tick(dt);
+            _engine.Tick(simDt);
+
+            // 得分累積能量
+            int score = _engine.State.Score;
+            if (score > _lastScore) { _cards.AddEnergy((score - _lastScore) * 20f); _lastScore = score; }
 
             if (_engine.State.Hp != _lastHp)
             {
@@ -241,9 +264,11 @@ namespace PanicConsole.App
             string warn = t.WarningActive ? "   ⚠ 即將切換！" : "";
             string grace = (!s.IsInvincible && _engine.Focused.InFocusGrace) ? "   準備!" : "";
             float baseInterval = SwitchTimer.IntervalForRound(t.Round) * t.IntervalScale;
+            string frozen = t.IsFrozen ? "  ❄凍結" : "";
             _hud.text =
-                $"HP {s.Hp}/{s.MaxHp}    分數 {s.Score}    生存 {s.SurvivalTime:0.0}s    {t.Remaining:0.0}s 後切換（每輪約 {baseInterval:0.0}s）{warn}\n" +
-                $"▶ 現在操作：{ActiveName()}  —  {ActiveHint()}{grace}";
+                $"HP {s.Hp}/{s.MaxHp}    分數 {s.Score}    生存 {s.SurvivalTime:0.0}s    {t.Remaining:0.0}s 後切換（每輪約 {baseInterval:0.0}s）{warn}{frozen}\n" +
+                $"▶ 現在操作：{ActiveName()}  —  {ActiveHint()}{grace}\n" +
+                $"⚡能量 {_cards.Energy:0}%   手牌：{HandText()}   (Z / X / C 出牌)";
             _hud.color = t.WarningActive ? new Color(1f, 0.4f, 0.4f) : Color.white;
         }
 
@@ -308,6 +333,40 @@ namespace PanicConsole.App
                 case "tetris": return "←→ 移動  ↑ 旋轉  ↓ 下移";
                 default: return "";
             }
+        }
+
+        void PlayCard(int slot)
+        {
+            var c = _cards.Play(slot);
+            if (!c.HasValue) return;
+            switch (c.Value)
+            {
+                case CardType.Shield: _engine.State.GrantInvincibility(3f); break;
+                case CardType.Heal: _engine.State.Heal(1); break;
+                case CardType.Freeze: _engine.Timer.Freeze(3f); break;
+                case CardType.SlowMo: _slowTime = 3f; break;
+            }
+            Debug.Log($"[Slice] play card {c.Value}");
+        }
+
+        static string CardName(CardType c)
+        {
+            switch (c)
+            {
+                case CardType.Shield: return "護盾";
+                case CardType.Heal: return "補血";
+                case CardType.Freeze: return "凍結";
+                case CardType.SlowMo: return "慢動作";
+                default: return c.ToString();
+            }
+        }
+
+        string HandText()
+        {
+            if (_cards.Hand.Count == 0) return "（無）";
+            var parts = new string[_cards.Hand.Count];
+            for (int i = 0; i < _cards.Hand.Count; i++) parts[i] = $"[{CardName(_cards.Hand[i])}]";
+            return string.Join(" ", parts);
         }
 
         Image Pooled(int panel, int index, Color color)

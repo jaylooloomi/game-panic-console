@@ -55,6 +55,16 @@ public class MatchStateTests
         Assert.AreEqual(1f, s.InvincibleRemaining, 0.001f);
     }
 
+    [Test] public void HealRestoresUpToMax()
+    {
+        var s = new MatchState(5);
+        s.LoseHp(); s.LoseHp(); // 3
+        s.Heal(1);
+        Assert.AreEqual(4, s.Hp);
+        s.Heal(10); // 不超過上限
+        Assert.AreEqual(5, s.Hp);
+    }
+
     [Test] public void ScoreAndTimeAccumulateUntilGameOver()
     {
         var s = new MatchState(1);

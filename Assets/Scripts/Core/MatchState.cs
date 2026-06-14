@@ -42,6 +42,12 @@ namespace PanicConsole.Core
             if (InvincibleRemaining > 0f) InvincibleRemaining = Math.Max(0f, InvincibleRemaining - dt);
         }
 
+        public void Heal(int amount)
+        {
+            if (IsGameOver || amount <= 0) return;
+            Hp = Math.Min(MaxHp, Hp + amount);
+        }
+
         public void AddScore(int points) { if (!IsGameOver) Score += points; }
         public void TickTime(float dt) { if (!IsGameOver) SurvivalTime += dt; }
     }
