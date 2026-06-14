@@ -95,7 +95,7 @@ namespace PanicConsole.App
             // 底部控制提示
             UiFactory.Label(canvas.transform, "controls", 16, TextAnchor.MiddleCenter,
                 new Vector2(0f, 0.01f), new Vector2(1f, 0.1f)).text =
-                "恐龍: Space/↑   蛇: 方向鍵   鋼琴: A/S/D/F   方塊: ←→↑↓     |     R: 重開   [ / ] : 切換快慢   2: 雙人對戰";
+                "恐龍:Space/↑  蛇:方向鍵  鋼琴:A/S/D/F  方塊:←→↑↓   |   R:重開  [/]:切換快慢   2:對戰下樓梯  3:對戰爆爆王";
         }
 
         static Color PanelBg(Color c, bool focused)
@@ -157,7 +157,8 @@ namespace PanicConsole.App
         {
             float dt = Time.deltaTime;
 
-            if (Input.GetKeyDown(KeyCode.Alpha2)) { SceneManager.LoadScene("Versus"); return; } // 進雙人對戰
+            if (Input.GetKeyDown(KeyCode.Alpha2)) { SceneManager.LoadScene("Versus"); return; } // 雙人對戰：下樓梯
+            if (Input.GetKeyDown(KeyCode.Alpha3)) { SceneManager.LoadScene("Bomber"); return; } // 雙人對戰：爆爆王
 
             for (int i = 0; i < GameCount; i++)
                 if (_panelFlash[i] > 0f) _panelFlash[i] = Mathf.Max(0f, _panelFlash[i] - dt);

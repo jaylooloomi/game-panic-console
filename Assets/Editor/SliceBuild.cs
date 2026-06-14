@@ -13,6 +13,7 @@ public static class SliceBuild
 {
     const string ScenePath = "Assets/Scenes/Slice.unity";
     const string VersusScenePath = "Assets/Scenes/Versus.unity";
+    const string BomberScenePath = "Assets/Scenes/Bomber.unity";
     const string OutDir = "Build/PanicConsoleSlice";
     const string OutExe = OutDir + "/PanicConsoleSlice.exe";
 
@@ -35,6 +36,11 @@ public static class SliceBuild
         new GameObject("VersusGame").AddComponent<VersusGame>();
         EditorSceneManager.SaveScene(versus, VersusScenePath);
         Debug.Log("[SliceBuild] scene saved: " + VersusScenePath);
+
+        var bomber = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
+        new GameObject("BomberGame").AddComponent<BomberGame>();
+        EditorSceneManager.SaveScene(bomber, BomberScenePath);
+        Debug.Log("[SliceBuild] scene saved: " + BomberScenePath);
     }
 
     public static void BuildWin64()
@@ -44,7 +50,7 @@ public static class SliceBuild
         Directory.CreateDirectory(OutDir);
         var options = new BuildPlayerOptions
         {
-            scenes = new[] { ScenePath, VersusScenePath },
+            scenes = new[] { ScenePath, VersusScenePath, BomberScenePath },
             locationPathName = OutExe,
             target = BuildTarget.StandaloneWindows64,
             options = BuildOptions.None
