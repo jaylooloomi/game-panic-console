@@ -17,16 +17,19 @@ namespace PanicConsole.App
         static readonly Color DinoColor = new Color(1f, 0.55f, 0.15f);
         static readonly Color SnakeColor = new Color(0.3f, 0.9f, 0.4f);
         static readonly Color PianoColor = new Color(0.3f, 0.8f, 1f);
+        static readonly Color TetrisColor = new Color(0.75f, 0.45f, 1f);
 
         SwitchEngine _engine;
         DinoSim _dino;
         SnakeSim _snake;
         PianoSim _piano;
+        TetrisSim _tetris;
 
+        const int GameCount = 4;
         RectTransform[] _panels;
         Color[] _baseColors;
         Text[] _panelLabels;
-        readonly List<Image>[] _pools = new List<Image>[3];
+        readonly List<Image>[] _pools = new List<Image>[GameCount];
 
         Text _hud;
         Text _banner;        // 開場熱身 / Game Over
@@ -36,7 +39,7 @@ namespace PanicConsole.App
         float _switchScale = 0.5f;
 
         // 視覺回饋
-        readonly float[] _panelFlash = new float[3]; // 失誤紅閃計時（秒）
+        readonly float[] _panelFlash = new float[GameCount]; // 失誤紅閃計時（秒）
         float _shakeTime;                            // 切換警報抖動計時（秒）
         float _bestSurvival;                         // 最佳生存秒數（PlayerPrefs 持久化）
 
@@ -45,7 +48,7 @@ namespace PanicConsole.App
             _bestSurvival = PlayerPrefs.GetFloat("best_survival", 0f);
             BuildUi();
             BuildEngine();
-            Debug.Log("[Slice] started with 3 games (dino/snake/piano)");
+            Debug.Log("[Slice] started with 4 games (dino/snake/piano/tetris)");
         }
 
         // ---------- 建立 UI ----------
@@ -64,17 +67,17 @@ namespace PanicConsole.App
             UiFactory.StretchPanel(canvas.transform, "bg", new Color(0.05f, 0.05f, 0.08f),
                 Vector2.zero, Vector2.one);
 
-            // 三欄面板（上方留 HUD，下方留控制提示）
-            _panels = new RectTransform[3];
-            _baseColors = new[] { DinoColor, SnakeColor, PianoColor };
-            _panelLabels = new Text[3];
-            string[] names = { "dino", "snake", "piano" };
-            for (int i = 0; i < 3; i++)
+            // 四欄面板（上方留 HUD，下方留控制提示）
+            _panels = new RectTransform[GameCount];
+            _baseColors = new[] { DinoColor, SnakeColor, PianoColor, TetrisColor };
+            _panelLabels = new Text[GameCount];
+            string[] names = { "dino", "snake", "piano", "tetris" };
+            for (int i = 0; i < GameCount; i++)
             {
-                float x0 = i / 3f, x1 = (i + 1) / 3f;
+                float x0 = i / (float)GameCount, x1 = (i + 1) / (float)GameCount;
                 var panel = UiFactory.StretchPanel(canvas.transform, "panel_" + names[i],
                     PanelBg(_baseColors[i], false),
-                    new Vector2(x0 + 0.01f, 0.12f), new Vector2(x1 - 0.01f, 0.84f));
+                    new Vector2(x0 + 0.008f, 0.12f), new Vector2(x1 - 0.008f, 0.84f));
                 _panels[i] = panel;
                 _pools[i] = new List<Image>();
                 _panelLabels[i] = UiFactory.Label(panel, "label", 18, TextAnchor.UpperCenter,
@@ -91,7 +94,7 @@ namespace PanicConsole.App
             // 底部控制提示
             UiFactory.Label(canvas.transform, "controls", 16, TextAnchor.MiddleCenter,
                 new Vector2(0f, 0.01f), new Vector2(1f, 0.1f)).text =
-                "前台操作 → 恐龍: Space/↑ 跳   蛇: 方向鍵   鋼琴: A/S/D/F     |     R: 重新開始     |     [ / ] : 切換變快/變慢";
+                "恐龍: Space/↑ 跳   蛇: 方向鍵   鋼琴: A/S/D/F   方塊: ←→移動 ↑旋轉 ↓下移     |     R: 重開   [ / ] : 切換快慢";
         }
 
         static Color PanelBg(Color c, bool focused)
@@ -105,7 +108,8 @@ namespace PanicConsole.App
             _dino = new DinoSim();
             _snake = new SnakeSim();
             _piano = new PianoSim();
-            var games = new List<IMinigame> { _dino, _snake, _piano };
+            _tetris = new TetrisSim();
+            var games = new List<IMinigame> { _dino, _snake, _piano, _tetris };
             var timer = new SwitchTimer(3f, _switchScale);
             var state = new MatchState();
             _engine = new SwitchEngine(games, timer, state)
@@ -151,7 +155,7 @@ namespace PanicConsole.App
         {
             float dt = Time.deltaTime;
 
-            for (int i = 0; i < 3; i++)
+            for (int i = 0; i < GameCount; i++)
                 if (_panelFlash[i] > 0f) _panelFlash[i] = Mathf.Max(0f, _panelFlash[i] - dt);
             if (_shakeTime > 0f) _shakeTime = Mathf.Max(0f, _shakeTime - dt);
 
@@ -216,6 +220,12 @@ namespace PanicConsole.App
                     else if (Input.GetKeyDown(KeyCode.D)) piano.Hit(2);
                     else if (Input.GetKeyDown(KeyCode.F)) piano.Hit(3);
                     break;
+                case TetrisSim tetris:
+                    if (Input.GetKeyDown(KeyCode.LeftArrow)) tetris.MoveLeft();
+                    else if (Input.GetKeyDown(KeyCode.RightArrow)) tetris.MoveRight();
+                    else if (Input.GetKeyDown(KeyCode.UpArrow)) tetris.Rotate();
+                    else if (Input.GetKeyDown(KeyCode.DownArrow)) tetris.SoftDrop();
+                    break;
             }
         }
 
@@ -235,7 +245,7 @@ namespace PanicConsole.App
         // ---------- 渲染 ----------
         void RenderAll()
         {
-            for (int i = 0; i < 3; i++)
+            for (int i = 0; i < GameCount; i++)
             {
                 bool focused = _engine.FocusIndex == i;
                 Color bg = PanelBg(_baseColors[i], focused);
@@ -252,10 +262,12 @@ namespace PanicConsole.App
             RenderDino(0, _engine.FocusIndex == 0);
             RenderSnake(1, _engine.FocusIndex == 1);
             RenderPiano(2, _engine.FocusIndex == 2);
+            RenderTetris(3, _engine.FocusIndex == 3);
 
             SetPanelLabel(0, "恐龍 Dino");
             SetPanelLabel(1, "貪食蛇 Snake");
             SetPanelLabel(2, "鋼琴 Piano");
+            SetPanelLabel(3, "方塊 Tetris");
         }
 
         void SetPanelLabel(int i, string name)
@@ -276,6 +288,7 @@ namespace PanicConsole.App
                 case "dino": return "恐龍";
                 case "snake": return "貪食蛇";
                 case "piano": return "鋼琴";
+                case "tetris": return "方塊";
                 default: return "?";
             }
         }
@@ -287,6 +300,7 @@ namespace PanicConsole.App
                 case "dino": return "Space / ↑ 跳";
                 case "snake": return "方向鍵 移動";
                 case "piano": return "A / S / D / F 點擊";
+                case "tetris": return "←→ 移動  ↑ 旋轉  ↓ 下移";
                 default: return "";
             }
         }
@@ -381,6 +395,41 @@ namespace PanicConsole.App
                 float ty = Mathf.Clamp01(tiles[i].Y / _piano.Height) * h;
                 img.rectTransform.sizeDelta = new Vector2(Mathf.Max(1, colW - 3f), h * 0.06f);
                 img.rectTransform.anchoredPosition = new Vector2(tx, ty);
+            }
+            HideFrom(panel, idx);
+        }
+
+        void RenderTetris(int panel, bool focused)
+        {
+            var rect = _panels[panel].rect;
+            float cw = rect.width / _tetris.Width;
+            float ch = rect.height / _tetris.Height;
+            Color c = focused ? TetrisColor : TetrisColor * 0.6f;
+            var locked = new Color(c.r * 0.7f, c.g * 0.7f, c.b * 0.7f);
+            var cellSize = new Vector2(Mathf.Max(1, cw - 1f), Mathf.Max(1, ch - 1f));
+
+            int idx = 0;
+            var grid = _tetris.Grid;
+            if (grid != null)
+            {
+                for (int x = 0; x < _tetris.Width; x++)
+                    for (int y = 0; y < _tetris.Height; y++)
+                        if (grid[x, y])
+                        {
+                            var img = Pooled(panel, idx++, locked);
+                            img.rectTransform.sizeDelta = cellSize;
+                            img.rectTransform.anchoredPosition = new Vector2(x * cw, y * ch);
+                        }
+            }
+            if (_tetris.HasPiece)
+            {
+                foreach (var cell in _tetris.Piece)
+                {
+                    int wx = _tetris.PieceX + cell.X, wy = _tetris.PieceY + cell.Y;
+                    var img = Pooled(panel, idx++, Color.white);
+                    img.rectTransform.sizeDelta = cellSize;
+                    img.rectTransform.anchoredPosition = new Vector2(wx * cw, wy * ch);
+                }
             }
             HideFrom(panel, idx);
         }
