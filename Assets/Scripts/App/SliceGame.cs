@@ -3,6 +3,7 @@ using PanicConsole.Core;
 using PanicConsole.Minigames;
 using UnityEngine;
 using UnityEngine.UI;
+using UnityEngine.SceneManagement;
 
 namespace PanicConsole.App
 {
@@ -94,7 +95,7 @@ namespace PanicConsole.App
             // 底部控制提示
             UiFactory.Label(canvas.transform, "controls", 16, TextAnchor.MiddleCenter,
                 new Vector2(0f, 0.01f), new Vector2(1f, 0.1f)).text =
-                "恐龍: Space/↑ 跳   蛇: 方向鍵   鋼琴: A/S/D/F   方塊: ←→移動 ↑旋轉 ↓下移     |     R: 重開   [ / ] : 切換快慢";
+                "恐龍: Space/↑   蛇: 方向鍵   鋼琴: A/S/D/F   方塊: ←→↑↓     |     R: 重開   [ / ] : 切換快慢   2: 雙人對戰";
         }
 
         static Color PanelBg(Color c, bool focused)
@@ -155,6 +156,8 @@ namespace PanicConsole.App
         void Update()
         {
             float dt = Time.deltaTime;
+
+            if (Input.GetKeyDown(KeyCode.Alpha2)) { SceneManager.LoadScene("Versus"); return; } // 進雙人對戰
 
             for (int i = 0; i < GameCount; i++)
                 if (_panelFlash[i] > 0f) _panelFlash[i] = Mathf.Max(0f, _panelFlash[i] - dt);

@@ -12,35 +12,39 @@ using UnityEngine;
 public static class SliceBuild
 {
     const string ScenePath = "Assets/Scenes/Slice.unity";
+    const string VersusScenePath = "Assets/Scenes/Versus.unity";
     const string OutDir = "Build/PanicConsoleSlice";
     const string OutExe = OutDir + "/PanicConsoleSlice.exe";
 
     // 只建立場景（供測試或重建用）
     public static void BuildSceneOnly()
     {
-        CreateScene();
+        CreateScenes();
     }
 
-    static void CreateScene()
+    static void CreateScenes()
     {
-        var scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
-
-        var go = new GameObject("SliceGame");
-        go.AddComponent<SliceGame>();
-
         Directory.CreateDirectory("Assets/Scenes");
-        EditorSceneManager.SaveScene(scene, ScenePath);
+
+        var slice = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
+        new GameObject("SliceGame").AddComponent<SliceGame>();
+        EditorSceneManager.SaveScene(slice, ScenePath);
         Debug.Log("[SliceBuild] scene saved: " + ScenePath);
+
+        var versus = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
+        new GameObject("VersusGame").AddComponent<VersusGame>();
+        EditorSceneManager.SaveScene(versus, VersusScenePath);
+        Debug.Log("[SliceBuild] scene saved: " + VersusScenePath);
     }
 
     public static void BuildWin64()
     {
-        CreateScene();
+        CreateScenes();
 
         Directory.CreateDirectory(OutDir);
         var options = new BuildPlayerOptions
         {
-            scenes = new[] { ScenePath },
+            scenes = new[] { ScenePath, VersusScenePath },
             locationPathName = OutExe,
             target = BuildTarget.StandaloneWindows64,
             options = BuildOptions.None
