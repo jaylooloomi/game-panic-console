@@ -388,17 +388,27 @@ namespace PanicConsole.App
             ground.rectTransform.sizeDelta = new Vector2(w, 3f);
             ground.rectTransform.anchoredPosition = new Vector2(0, groundY);
 
+            // 玩家：雙色小角色（身體 + 較亮的頭）
             float playerSize = Mathf.Min(w, h) * 0.12f;
-            var player = Pooled(panel, 1, c);
-            player.rectTransform.sizeDelta = new Vector2(playerSize, playerSize);
-            player.rectTransform.anchoredPosition = new Vector2(w * 0.14f, groundY + (dino.IsAirborne ? h * 0.22f : 0f));
+            float px = w * 0.14f;
+            float py = groundY + (dino.IsAirborne ? h * 0.22f : 0f);
+            var bodyB = Pooled(panel, 1, c);
+            bodyB.rectTransform.sizeDelta = new Vector2(playerSize, playerSize);
+            bodyB.rectTransform.anchoredPosition = new Vector2(px, py);
+            var headB = Pooled(panel, 2, new Color(Mathf.Min(1, c.r * 1.3f), Mathf.Min(1, c.g * 1.3f), Mathf.Min(1, c.b * 1.3f)));
+            headB.rectTransform.sizeDelta = new Vector2(playerSize * 0.6f, playerSize * 0.55f);
+            headB.rectTransform.anchoredPosition = new Vector2(px + playerSize * 0.45f, py + playerSize * 0.6f);
 
+            // 障礙：仙人掌（主幹 + 側枝）
             float ox = Mathf.Clamp01(dino.ObstacleX / dino.SpawnDistance) * w;
-            var obs = Pooled(panel, 2, new Color(0.9f, 0.2f, 0.3f));
-            obs.rectTransform.sizeDelta = new Vector2(playerSize * 0.8f, playerSize * 1.1f);
-            obs.rectTransform.anchoredPosition = new Vector2(ox, groundY);
+            var cactus = Pooled(panel, 3, new Color(0.35f, 0.75f, 0.35f));
+            cactus.rectTransform.sizeDelta = new Vector2(playerSize * 0.5f, playerSize * 1.3f);
+            cactus.rectTransform.anchoredPosition = new Vector2(ox, groundY);
+            var arm = Pooled(panel, 4, new Color(0.35f, 0.75f, 0.35f));
+            arm.rectTransform.sizeDelta = new Vector2(playerSize * 0.3f, playerSize * 0.3f);
+            arm.rectTransform.anchoredPosition = new Vector2(ox + playerSize * 0.45f, groundY + playerSize * 0.6f);
 
-            HideFrom(panel, 3);
+            HideFrom(panel, 5);
         }
 
         void RenderSnake(SnakeSim snake, int panel, bool focused)
@@ -415,9 +425,23 @@ namespace PanicConsole.App
                 img.rectTransform.sizeDelta = size;
                 img.rectTransform.anchoredPosition = new Vector2(body[i].X * cw, body[i].Y * ch);
             }
-            var food = Pooled(panel, idx++, new Color(1f, 0.85f, 0.2f));
-            food.rectTransform.sizeDelta = size;
-            food.rectTransform.anchoredPosition = new Vector2(snake.Food.X * cw, snake.Food.Y * ch);
+            // 食物：發光大黃點
+            var food = Pooled(panel, idx++, new Color(1f, 0.9f, 0.3f));
+            food.rectTransform.sizeDelta = size * 1.1f;
+            food.rectTransform.anchoredPosition = new Vector2(snake.Food.X * cw - cw * 0.05f, snake.Food.Y * ch - ch * 0.05f);
+            // 蛇頭眼睛
+            if (body.Count > 0)
+            {
+                float hx = body[0].X * cw, hy = body[0].Y * ch;
+                var eyeSize = new Vector2(Mathf.Max(2f, cw * 0.2f), Mathf.Max(2f, ch * 0.2f));
+                var eyeColor = new Color(0.1f, 0.1f, 0.13f);
+                var e1 = Pooled(panel, idx++, eyeColor);
+                e1.rectTransform.sizeDelta = eyeSize;
+                e1.rectTransform.anchoredPosition = new Vector2(hx + cw * 0.2f, hy + ch * 0.5f);
+                var e2 = Pooled(panel, idx++, eyeColor);
+                e2.rectTransform.sizeDelta = eyeSize;
+                e2.rectTransform.anchoredPosition = new Vector2(hx + cw * 0.55f, hy + ch * 0.5f);
+            }
             HideFrom(panel, idx);
         }
 
@@ -428,9 +452,17 @@ namespace PanicConsole.App
             float colW = w / piano.Columns;
             Color c = focused ? PianoColor : PianoColor * 0.6f;
             int idx = 0;
-            var line = Pooled(panel, idx++, new Color(1f, 1f, 1f, 0.6f));
-            line.rectTransform.sizeDelta = new Vector2(w, 3f);
-            line.rectTransform.anchoredPosition = new Vector2(0, h * 0.05f);
+            // 直行分隔線
+            for (int col = 1; col < piano.Columns; col++)
+            {
+                var div = Pooled(panel, idx++, new Color(1f, 1f, 1f, 0.08f));
+                div.rectTransform.sizeDelta = new Vector2(2f, h);
+                div.rectTransform.anchoredPosition = new Vector2(col * colW, 0);
+            }
+            // 發光命中線（彩色、較粗）
+            var line = Pooled(panel, idx++, new Color(c.r, c.g, c.b, 0.9f));
+            line.rectTransform.sizeDelta = new Vector2(w, 6f);
+            line.rectTransform.anchoredPosition = new Vector2(0, h * 0.06f);
             var tiles = piano.Tiles;
             for (int i = 0; i < tiles.Count; i++)
             {
@@ -449,6 +481,20 @@ namespace PanicConsole.App
             var locked = new Color(c.r * 0.7f, c.g * 0.7f, c.b * 0.7f);
             var size = new Vector2(Mathf.Max(1, cw - 1f), Mathf.Max(1, ch - 1f));
             int idx = 0;
+            // 淡網格底
+            var gcol = new Color(1f, 1f, 1f, 0.06f);
+            for (int x = 1; x < tetris.Width; x++)
+            {
+                var v = Pooled(panel, idx++, gcol);
+                v.rectTransform.sizeDelta = new Vector2(1.5f, rect.height);
+                v.rectTransform.anchoredPosition = new Vector2(x * cw, 0);
+            }
+            for (int y = 1; y < tetris.Height; y++)
+            {
+                var hl = Pooled(panel, idx++, gcol);
+                hl.rectTransform.sizeDelta = new Vector2(rect.width, 1.5f);
+                hl.rectTransform.anchoredPosition = new Vector2(0, y * ch);
+            }
             var grid = tetris.Grid;
             if (grid != null)
                 for (int x = 0; x < tetris.Width; x++)
