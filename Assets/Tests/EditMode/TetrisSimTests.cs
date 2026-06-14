@@ -58,6 +58,16 @@ public class TetrisSimTests
         Assert.IsTrue(anyVertical);
     }
 
+    [Test] public void RotatingNearTopNeverDropsCellsOnLock()
+    {
+        // 修正前：I 方塊在頂端旋成有格 wy>=Height 的姿態，鎖定時會靜默掉一格（只鎖 3 格）
+        var t = new TetrisSim(); t.Reset();
+        t.Tick(0.01f, true);          // 序號 0 = I
+        t.Rotate(); t.Rotate(); t.Rotate(); // 嘗試轉到會超出頂端的姿態
+        t.OnBlur();                   // 立即固定
+        Assert.AreEqual(4, Filled(t), "鎖定必須固定完整 4 格，不得靜默掉格");
+    }
+
     [Test] public void OnBlurLocksCurrentPiece()
     {
         var t = new TetrisSim(); t.Reset();

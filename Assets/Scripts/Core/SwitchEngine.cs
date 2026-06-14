@@ -17,6 +17,8 @@ namespace PanicConsole.Core
         public float OpeningInvincibility = 0f;
         /// <summary>失誤後冷卻無敵秒數（0 = 關閉），避免同一遊戲瞬間連環扣血。</summary>
         public float PostFailInvincibility = 0f;
+        /// <summary>開局的起始焦點索引（預設 0；App 可隨機化讓每個遊戲都有機會被先玩到）。</summary>
+        public int StartFocusIndex = 0;
 
         public SwitchEngine(IReadOnlyList<IMinigame> games, SwitchTimer timer, MatchState state)
         {
@@ -38,6 +40,7 @@ namespace PanicConsole.Core
         public void Start()
         {
             foreach (var g in _games) { g.Init(); g.Reset(); }
+            FocusIndex = ((StartFocusIndex % _games.Count) + _games.Count) % _games.Count;
             for (int i = 0; i < _games.Count; i++)
             {
                 if (i == FocusIndex) _games[i].OnFocus();

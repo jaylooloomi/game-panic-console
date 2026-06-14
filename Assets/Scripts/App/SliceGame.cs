@@ -114,8 +114,9 @@ namespace PanicConsole.App
             var state = new MatchState();
             _engine = new SwitchEngine(games, timer, state)
             {
-                OpeningInvincibility = 2.5f, // 開場熱身：先熟悉操作不扣血
-                PostFailInvincibility = 1.0f, // 失誤後短暫冷卻，避免連環爆扣
+                OpeningInvincibility = 2.5f,  // 開場熱身：先熟悉操作不扣血
+                PostFailInvincibility = 1.5f, // 失誤後冷卻，避免連環爆扣（拉長助玩家撐到後棒）
+                StartFocusIndex = Random.Range(0, GameCount), // 隨機起始棒，讓每個遊戲都可能先玩到
             };
 
             timer.OnSwitch += () =>

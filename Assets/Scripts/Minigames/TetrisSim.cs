@@ -65,12 +65,24 @@ namespace PanicConsole.Minigames
             if (_hasPiece && Fits(_px + dx, _py, _piece)) _px += dx;
         }
 
+        // 旋轉的位移嘗試（wall-kick）：先原地，再左右，最後往上（解貼地旋轉）
+        static readonly int[] KickDx = { 0, -1, 1, -2, 2 };
+        static readonly int[] KickDy = { 0, 1, 2 };
+
         public void Rotate()
         {
             if (!_hasPiece || _isO) return;
             var rotated = new List<Cell>(4);
             foreach (var c in _piece) rotated.Add(new Cell(c.Y, -c.X)); // 順時針
-            if (Fits(_px, _py, rotated)) { _piece.Clear(); _piece.AddRange(rotated); }
+
+            foreach (int dy in KickDy)
+                foreach (int dx in KickDx)
+                    if (Fits(_px + dx, _py + dy, rotated))
+                    {
+                        _px += dx; _py += dy;
+                        _piece.Clear(); _piece.AddRange(rotated);
+                        return;
+                    }
         }
 
         public void SoftDrop()
@@ -148,8 +160,9 @@ namespace PanicConsole.Minigames
             foreach (var c in cells)
             {
                 int wx = px + c.X, wy = py + c.Y;
-                if (wx < 0 || wx >= Width || wy < 0) return false;
-                if (wy < Height && _grid[wx, wy]) return false;
+                // 頂端視為實牆（與 LockPiece 一致，避免鎖定時靜默掉格）
+                if (wx < 0 || wx >= Width || wy < 0 || wy >= Height) return false;
+                if (_grid[wx, wy]) return false;
             }
             return true;
         }
