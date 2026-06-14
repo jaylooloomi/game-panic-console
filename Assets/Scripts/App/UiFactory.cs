@@ -51,7 +51,9 @@ namespace PanicConsole.App
             rt.offsetMin = Vector2.zero;
             rt.offsetMax = Vector2.zero;
             var t = go.GetComponent<Text>();
-            t.font = BuiltinFont();
+            var font = BuiltinFont();
+            if (font == null) Debug.LogError("[UiFactory] 內建字型 LegacyRuntime.ttf 找不到，文字將不顯示");
+            t.font = font;
             t.fontSize = fontSize;
             t.alignment = anchor;
             t.color = Color.white;

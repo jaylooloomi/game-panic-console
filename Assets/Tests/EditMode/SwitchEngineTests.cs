@@ -51,6 +51,37 @@ public class SwitchEngineTests
         Assert.AreEqual(before + 1, games[1].ResetCount);
     }
 
+    [Test] public void OpeningInvincibilityPreventsEarlyLoss()
+    {
+        var e = Make(out var games);
+        e.OpeningInvincibility = 2.5f;
+        e.Start();
+        games[0].FailNow();                 // 開場無敵 → 不扣
+        Assert.AreEqual(5, e.State.Hp);
+        e.Tick(3f);                         // 無敵到期
+        games[0].FailNow();
+        Assert.AreEqual(4, e.State.Hp);
+    }
+
+    [Test] public void PostFailInvincibilityPreventsImmediateSecondLoss()
+    {
+        var e = Make(out var games);
+        e.PostFailInvincibility = 1f;
+        e.Start();
+        games[0].FailNow();                 // 扣 1，並進入冷卻無敵
+        Assert.AreEqual(4, e.State.Hp);
+        games[0].FailNow();                 // 冷卻中 → 不再扣
+        Assert.AreEqual(4, e.State.Hp);
+    }
+
+    [Test] public void ScoreFromGameIsRecorded()
+    {
+        var e = Make(out var games);
+        e.Start();
+        games[1].ScoreNow(5);
+        Assert.AreEqual(5, e.State.Score);
+    }
+
     [Test] public void TickIsNoopAfterGameOver()
     {
         var e = Make(out var games, hp: 1);

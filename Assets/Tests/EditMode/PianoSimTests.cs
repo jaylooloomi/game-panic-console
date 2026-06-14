@@ -22,7 +22,7 @@ public class PianoSimTests
 
     [Test] public void FocusedTickMovesTilesDown()
     {
-        var p = new PianoSim(); p.Reset(); p.OnFocus();
+        var p = new PianoSim(); p.Reset();
         float y = p.Tiles[0].Y;
         p.Tick(0.05f, true);
         Assert.Less(p.Tiles[0].Y, y);
@@ -30,7 +30,7 @@ public class PianoSimTests
 
     [Test] public void TileReachingBottomFails()
     {
-        var p = new PianoSim(); p.Reset(); p.OnFocus();
+        var p = new PianoSim(); p.Reset();
         bool failed = false; p.OnFail += _ => failed = true;
         p.Tick(100f, true);
         Assert.IsTrue(failed);
@@ -38,7 +38,7 @@ public class PianoSimTests
 
     [Test] public void HitRemovesTileInColumn()
     {
-        var p = new PianoSim(); p.Reset(); p.OnFocus();
+        var p = new PianoSim(); p.Reset();
         int col = p.Tiles[0].Column;
         p.Hit(col);
         Assert.AreEqual(0, p.Tiles.Count);
@@ -46,7 +46,7 @@ public class PianoSimTests
 
     [Test] public void HitEmptyColumnFails()
     {
-        var p = new PianoSim(); p.Reset(); p.OnFocus();
+        var p = new PianoSim(); p.Reset();
         int occupied = p.Tiles[0].Column;
         int empty = (occupied + 1) % p.Columns;
         bool failed = false; p.OnFail += _ => failed = true;

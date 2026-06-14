@@ -13,7 +13,7 @@ public class SnakeSimTests
 
     [Test] public void FocusedStepMovesHeadRight()
     {
-        var s = new SnakeSim(); s.Reset(); s.OnFocus();
+        var s = new SnakeSim(); s.Reset();
         var head = s.Body[0];
         s.Tick(s.StepInterval, true);
         Assert.AreEqual(head.X + 1, s.Body[0].X);
@@ -32,7 +32,7 @@ public class SnakeSimTests
 
     [Test] public void HittingWallFails()
     {
-        var s = new SnakeSim { Width = 10, Height = 10 }; s.Reset(); s.OnFocus();
+        var s = new SnakeSim { Width = 10, Height = 10 }; s.Reset();
         bool failed = false; s.OnFail += _ => failed = true;
         for (int i = 0; i < 20 && !failed; i++) s.Tick(s.StepInterval, true);
         Assert.IsTrue(failed);
@@ -49,7 +49,7 @@ public class SnakeSimTests
 
     [Test] public void CannotReverseDirection()
     {
-        var s = new SnakeSim(); s.Reset(); s.OnFocus(); // moving right
+        var s = new SnakeSim(); s.Reset(); // moving right
         s.SetDirection(-1, 0); // try reverse -> ignored
         Assert.AreEqual(1, s.DirX);
     }

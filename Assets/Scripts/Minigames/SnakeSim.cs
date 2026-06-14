@@ -70,7 +70,7 @@ namespace PanicConsole.Minigames
             }
 
             _body.Insert(0, new Cell(nx, ny));
-            if (nx == Food.X && ny == Food.Y) RespawnFood();
+            if (nx == Food.X && ny == Food.Y) { RespawnFood(); RaiseScore(1); } // 吃到食物得分
             else _body.RemoveAt(_body.Count - 1);
             return true;
         }

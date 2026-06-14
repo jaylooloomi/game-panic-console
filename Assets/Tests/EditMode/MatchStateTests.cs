@@ -34,6 +34,27 @@ public class MatchStateTests
         Assert.AreEqual(0, s.Hp);
     }
 
+    [Test] public void InvincibleBlocksHpLoss()
+    {
+        var s = new MatchState();
+        s.GrantInvincibility(1f);
+        Assert.IsTrue(s.IsInvincible);
+        s.LoseHp();
+        Assert.AreEqual(5, s.Hp); // 無敵期間不扣
+        s.TickInvincibility(1.5f);
+        Assert.IsFalse(s.IsInvincible);
+        s.LoseHp();
+        Assert.AreEqual(4, s.Hp); // 失效後可扣
+    }
+
+    [Test] public void GrantInvincibilityKeepsLongerWindow()
+    {
+        var s = new MatchState();
+        s.GrantInvincibility(1f);
+        s.GrantInvincibility(0.5f); // 較短不應縮短
+        Assert.AreEqual(1f, s.InvincibleRemaining, 0.001f);
+    }
+
     [Test] public void ScoreAndTimeAccumulateUntilGameOver()
     {
         var s = new MatchState(1);

@@ -29,14 +29,20 @@ namespace PanicConsole.App
         readonly List<Image>[] _pools = new List<Image>[3];
 
         Text _hud;
-        Text _banner;        // 切換警報 / Game Over
+        Text _banner;        // 開場熱身 / Game Over
         int _lastHp;
 
         // 切換節奏縮放（1 = 規格 20/15/10）。切片預設較快讓玩家快速體驗輪替，可用 [ ] 即時調。
         float _switchScale = 0.5f;
 
+        // 視覺回饋
+        readonly float[] _panelFlash = new float[3]; // 失誤紅閃計時（秒）
+        float _shakeTime;                            // 切換警報抖動計時（秒）
+        float _bestSurvival;                         // 最佳生存秒數（PlayerPrefs 持久化）
+
         void Awake()
         {
+            _bestSurvival = PlayerPrefs.GetFloat("best_survival", 0f);
             BuildUi();
             BuildEngine();
             Debug.Log("[Slice] started with 3 games (dino/snake/piano)");
@@ -45,7 +51,8 @@ namespace PanicConsole.App
         // ---------- 建立 UI ----------
         void BuildUi()
         {
-            var canvasGo = new GameObject("Canvas", typeof(Canvas), typeof(CanvasScaler), typeof(GraphicRaycaster));
+            // 純鍵盤輸入，不需 GraphicRaycaster/EventSystem
+            var canvasGo = new GameObject("Canvas", typeof(Canvas), typeof(CanvasScaler));
             canvasGo.transform.SetParent(transform, false);
             var canvas = canvasGo.GetComponent<Canvas>();
             canvas.renderMode = RenderMode.ScreenSpaceOverlay;
@@ -101,15 +108,36 @@ namespace PanicConsole.App
             var games = new List<IMinigame> { _dino, _snake, _piano };
             var timer = new SwitchTimer(3f, _switchScale);
             var state = new MatchState();
-            _engine = new SwitchEngine(games, timer, state);
+            _engine = new SwitchEngine(games, timer, state)
+            {
+                OpeningInvincibility = 2.5f, // 開場熱身：先熟悉操作不扣血
+                PostFailInvincibility = 1.0f, // 失誤後短暫冷卻，避免連環爆扣
+            };
 
             timer.OnSwitch += () =>
                 Debug.Log($"[Slice] switch -> #{_engine.FocusIndex} {_engine.Focused.GameId} (round {timer.Round})");
-            state.OnGameOver += () => Debug.Log("[Slice] GAME OVER");
+            timer.OnWarning += () => _shakeTime = 0.35f; // 切換警報：前台面板抖動
+            for (int i = 0; i < games.Count; i++)
+            {
+                int idx = i;
+                games[i].OnFail += _ => _panelFlash[idx] = 0.45f; // 失誤：該面板紅閃
+            }
+            state.OnGameOver += () =>
+            {
+                Debug.Log("[Slice] GAME OVER");
+                if (state.SurvivalTime > _bestSurvival)
+                {
+                    _bestSurvival = state.SurvivalTime;
+                    PlayerPrefs.SetFloat("best_survival", _bestSurvival);
+                    PlayerPrefs.Save();
+                }
+            };
 
             _engine.Start();
             _lastHp = state.Hp;
             _banner.text = "";
+            for (int i = 0; i < _panelFlash.Length; i++) _panelFlash[i] = 0f;
+            _shakeTime = 0f;
         }
 
         void Restart()
@@ -123,6 +151,10 @@ namespace PanicConsole.App
         {
             float dt = Time.deltaTime;
 
+            for (int i = 0; i < 3; i++)
+                if (_panelFlash[i] > 0f) _panelFlash[i] = Mathf.Max(0f, _panelFlash[i] - dt);
+            if (_shakeTime > 0f) _shakeTime = Mathf.Max(0f, _shakeTime - dt);
+
             // 即時調校切換節奏（會重開一局套用）
             if (Input.GetKeyDown(KeyCode.LeftBracket))
             {
@@ -135,7 +167,8 @@ namespace PanicConsole.App
 
             if (_engine.State.IsGameOver)
             {
-                _banner.text = "GAME OVER\n按 R 重新開始";
+                _banner.color = new Color(1f, 0.3f, 0.4f);
+                _banner.text = $"GAME OVER\n你撐了 {_engine.State.SurvivalTime:0.0} 秒　最佳 {_bestSurvival:0.0} 秒\n按 R 再來一局";
                 if (Input.GetKeyDown(KeyCode.R)) Restart();
                 RenderAll();
                 return;
@@ -151,6 +184,14 @@ namespace PanicConsole.App
                 _lastHp = _engine.State.Hp;
                 Debug.Log($"[Slice] HP={_lastHp}");
             }
+
+            // 開場/失誤熱身提示（無敵期間）
+            if (_engine.State.IsInvincible)
+            {
+                _banner.color = new Color(0.4f, 0.9f, 1f);
+                _banner.text = $"熱身中（暫不扣血）{_engine.State.InvincibleRemaining:0.0}s\n顧好「亮起來」的那個遊戲！";
+            }
+            else _banner.text = "";
 
             RenderAll();
             UpdateHud();
@@ -183,10 +224,11 @@ namespace PanicConsole.App
             var s = _engine.State;
             var t = _engine.Timer;
             string warn = t.WarningActive ? "   ⚠ 即將切換！" : "";
+            string grace = (!s.IsInvincible && _engine.Focused.InFocusGrace) ? "   準備!" : "";
             float baseInterval = SwitchTimer.IntervalForRound(t.Round) * t.IntervalScale;
             _hud.text =
-                $"HP {s.Hp}/{s.MaxHp}    生存 {s.SurvivalTime:0.0}s    {t.Remaining:0.0}s 後切換（每輪約 {baseInterval:0.0}s）{warn}\n" +
-                $"▶ 現在操作：{ActiveName()}  —  {ActiveHint()}";
+                $"HP {s.Hp}/{s.MaxHp}    分數 {s.Score}    生存 {s.SurvivalTime:0.0}s    {t.Remaining:0.0}s 後切換（每輪約 {baseInterval:0.0}s）{warn}\n" +
+                $"▶ 現在操作：{ActiveName()}  —  {ActiveHint()}{grace}";
             _hud.color = t.WarningActive ? new Color(1f, 0.4f, 0.4f) : Color.white;
         }
 
@@ -196,7 +238,15 @@ namespace PanicConsole.App
             for (int i = 0; i < 3; i++)
             {
                 bool focused = _engine.FocusIndex == i;
-                _panels[i].GetComponent<Image>().color = PanelBg(_baseColors[i], focused);
+                Color bg = PanelBg(_baseColors[i], focused);
+                if (_panelFlash[i] > 0f)
+                    bg = Color.Lerp(bg, new Color(0.9f, 0.1f, 0.1f, 0.65f), _panelFlash[i] / 0.45f);
+                _panels[i].GetComponent<Image>().color = bg;
+
+                Vector2 off = Vector2.zero;
+                if (focused && _shakeTime > 0f)
+                    off = new Vector2(Random.Range(-7f, 7f), Random.Range(-7f, 7f));
+                _panels[i].anchoredPosition = off;
             }
 
             RenderDino(0, _engine.FocusIndex == 0);
@@ -211,8 +261,12 @@ namespace PanicConsole.App
         void SetPanelLabel(int i, string name)
         {
             bool focused = _engine.FocusIndex == i;
-            _panelLabels[i].text = focused ? ("▶ " + name + "\n← 你正在操作") : (name + "\n（背景）");
-            _panelLabels[i].color = focused ? Color.white : new Color(1f, 1f, 1f, 0.4f);
+            string sub = focused ? "← 你正在操作" : "（背景）";
+            if (_panelFlash[i] > 0f) sub = "失誤！ -1 HP";
+            _panelLabels[i].text = (focused ? "▶ " : "") + name + "\n" + sub;
+            _panelLabels[i].color = _panelFlash[i] > 0f
+                ? new Color(1f, 0.55f, 0.55f)
+                : (focused ? Color.white : new Color(1f, 1f, 1f, 0.4f));
         }
 
         string ActiveName()

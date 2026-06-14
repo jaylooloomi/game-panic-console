@@ -14,4 +14,5 @@ public class FakeMinigame : MinigameBase
         LastTickFocused = isFocused;
     }
     public void FailNow() => TriggerFail();
+    public void ScoreNow(int points) => RaiseScore(points);
 }

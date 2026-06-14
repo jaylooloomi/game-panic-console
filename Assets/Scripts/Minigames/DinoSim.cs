@@ -34,7 +34,7 @@ namespace PanicConsole.Minigames
             ObstacleX -= ScrollSpeed * dt;
             if (ObstacleX <= 0f)
             {
-                if (airborneThisFrame) ObstacleX = SpawnDistance; // 安全通過，重生
+                if (airborneThisFrame) { ObstacleX = SpawnDistance; RaiseScore(1); } // 安全通過，重生＋得分
                 else TriggerFail();
             }
             if (_airborne > 0f) _airborne -= dt;

@@ -13,6 +13,11 @@ namespace PanicConsole.Core
         public IMinigame Focused => _games[FocusIndex];
         public IReadOnlyList<IMinigame> Games => _games;
 
+        /// <summary>開場熱身無敵秒數（0 = 關閉，預設關閉以維持核心純粹；由 App 層按需開啟）。</summary>
+        public float OpeningInvincibility = 0f;
+        /// <summary>失誤後冷卻無敵秒數（0 = 關閉），避免同一遊戲瞬間連環扣血。</summary>
+        public float PostFailInvincibility = 0f;
+
         public SwitchEngine(IReadOnlyList<IMinigame> games, SwitchTimer timer, MatchState state)
         {
             if (games == null || games.Count == 0)
@@ -22,7 +27,11 @@ namespace PanicConsole.Core
             State = state ?? throw new ArgumentNullException(nameof(state));
 
             Timer.OnSwitch += SwitchFocus;
-            foreach (var g in _games) g.OnFail += HandleFail;
+            foreach (var g in _games)
+            {
+                g.OnFail += HandleFail;
+                g.OnScore += HandleScore;
+            }
             FocusIndex = 0;
         }
 
@@ -34,12 +43,14 @@ namespace PanicConsole.Core
                 if (i == FocusIndex) _games[i].OnFocus();
                 else _games[i].OnBlur();
             }
+            if (OpeningInvincibility > 0f) State.GrantInvincibility(OpeningInvincibility);
         }
 
         public void Tick(float dt)
         {
             if (State.IsGameOver) return;
             State.TickTime(dt);
+            State.TickInvincibility(dt);
             Timer.Tick(dt); // 可能透過事件呼叫 SwitchFocus
             for (int i = 0; i < _games.Count; i++)
                 _games[i].Tick(dt, i == FocusIndex);
@@ -55,7 +66,10 @@ namespace PanicConsole.Core
         private void HandleFail(IMinigame game)
         {
             State.LoseHp(1);
+            if (PostFailInvincibility > 0f) State.GrantInvincibility(PostFailInvincibility);
             game.Reset();
         }
+
+        private void HandleScore(int points) => State.AddScore(points);
     }
 }

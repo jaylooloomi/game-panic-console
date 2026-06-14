@@ -37,6 +37,7 @@ namespace PanicConsole.Minigames
 
             if (idx < 0) { TriggerFail(); return; } // 點了空行
             _tiles.RemoveAt(idx);
+            RaiseScore(1); // 成功點掉方塊得分
         }
 
         protected override void Simulate(float dt, bool isFocused)

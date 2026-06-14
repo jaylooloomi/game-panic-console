@@ -7,7 +7,9 @@ namespace PanicConsole.Core
     {
         string GameId { get; }
         bool IsFocused { get; }
+        bool InFocusGrace { get; }
         event Action<IMinigame> OnFail;
+        event Action<int> OnScore;
 
         void Init();
         void Reset();
