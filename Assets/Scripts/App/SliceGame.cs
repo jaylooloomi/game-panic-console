@@ -38,6 +38,7 @@ namespace PanicConsole.App
         GameDef[] _activeDef = new GameDef[GameCount];
 
         RectTransform[] _panels = new RectTransform[GameCount];
+        Outline[] _panelOutlines = new Outline[GameCount];
         Text[] _panelLabels = new Text[GameCount];
         readonly List<Image>[] _pools = new List<Image>[GameCount];
 
@@ -82,6 +83,9 @@ namespace PanicConsole.App
                 var panel = UiFactory.StretchPanel(canvas.transform, "panel" + i, new Color(1, 1, 1, 0.08f),
                     new Vector2(x0 + 0.008f, 0.12f), new Vector2(x1 - 0.008f, 0.84f));
                 _panels[i] = panel;
+                var ol = panel.gameObject.AddComponent<Outline>();
+                ol.effectDistance = new Vector2(3f, -3f);
+                _panelOutlines[i] = ol;
                 _pools[i] = new List<Image>();
                 _panelLabels[i] = UiFactory.Label(panel, "label", 18, TextAnchor.UpperCenter,
                     new Vector2(0f, 0.9f), new Vector2(1f, 1f));
@@ -98,7 +102,12 @@ namespace PanicConsole.App
                 "恐龍/連點:Space  蛇/方塊:方向鍵  鋼琴:A/S/D/F  方塊旋轉:↑ | Z/X/C:出牌 R:重開 [/]:快慢 2:下樓梯對戰 3:爆爆王對戰";
         }
 
-        static Color PanelBg(Color c, bool focused) => new Color(c.r, c.g, c.b, focused ? 0.28f : 0.08f);
+        static Color PanelBg(Color c, bool focused)
+        {
+            // 深色「螢幕」底：聚焦時帶遊戲色微光、背景時近黑，讓圓角磚塊更跳
+            if (focused) return new Color(c.r * 0.20f + 0.05f, c.g * 0.20f + 0.05f, c.b * 0.20f + 0.05f, 0.97f);
+            return new Color(0.07f, 0.07f, 0.10f, 0.97f);
+        }
 
         // ---------- 建立 / 重置 ----------
         void BuildEngine()
@@ -206,12 +215,7 @@ namespace PanicConsole.App
 
             if (_engine.State.Hp != _lastHp) { _lastHp = _engine.State.Hp; Debug.Log($"[Slice] HP={_lastHp}"); }
 
-            if (_engine.State.IsInvincible)
-            {
-                _banner.color = new Color(0.4f, 0.9f, 1f);
-                _banner.text = $"熱身中（暫不扣血）{_engine.State.InvincibleRemaining:0.0}s\n顧好「亮起來」的那個遊戲！";
-            }
-            else _banner.text = "";
+            _banner.text = ""; // 中央大字只留給 Game Over；無敵狀態顯示在 HUD，避免擋住遊戲
 
             RenderAll();
             UpdateHud();
@@ -255,9 +259,10 @@ namespace PanicConsole.App
             string warn = t.WarningActive ? "   ⚠ 即將切換！" : "";
             string grace = (!s.IsInvincible && _engine.Focused.InFocusGrace) ? "   準備!" : "";
             string frozen = t.IsFrozen ? "  ❄凍結" : "";
+            string inv = s.IsInvincible ? $"  🛡無敵{s.InvincibleRemaining:0.0}s" : "";
             float baseInterval = SwitchTimer.IntervalForRound(t.Round) * t.IntervalScale;
             _hud.text =
-                $"HP {s.Hp}/{s.MaxHp}    分數 {s.Score}    生存 {s.SurvivalTime:0.0}s    {t.Remaining:0.0}s 後切換（每輪約 {baseInterval:0.0}s）{warn}{frozen}\n" +
+                $"HP {s.Hp}/{s.MaxHp}    分數 {s.Score}    生存 {s.SurvivalTime:0.0}s    {t.Remaining:0.0}s 後切換（每輪約 {baseInterval:0.0}s）{warn}{frozen}{inv}\n" +
                 $"▶ 現在操作：{ActiveName()}  —  {ActiveHint()}{grace}\n" +
                 $"⚡能量 {_cards.Energy:0}%   手牌：{HandText()}   (Z / X / C 出牌)";
             _hud.color = t.WarningActive ? new Color(1f, 0.4f, 0.4f) : Color.white;
@@ -322,6 +327,12 @@ namespace PanicConsole.App
                 Color bg = PanelBg(_activeDef[i].Color, focused);
                 if (_panelFlash[i] > 0f) bg = Color.Lerp(bg, new Color(0.9f, 0.1f, 0.1f, 0.65f), _panelFlash[i] / 0.45f);
                 _panels[i].GetComponent<Image>().color = bg;
+
+                // 螢幕邊框：聚焦時亮、背景時暗（控制台監視器感）
+                var gc = _activeDef[i].Color;
+                _panelOutlines[i].effectColor = focused
+                    ? new Color(gc.r, gc.g, gc.b, 0.95f)
+                    : new Color(gc.r, gc.g, gc.b, 0.3f);
 
                 Vector2 off = Vector2.zero;
                 if (focused && _shakeTime > 0f) off = new Vector2(UnityEngine.Random.Range(-7f, 7f), UnityEngine.Random.Range(-7f, 7f));
