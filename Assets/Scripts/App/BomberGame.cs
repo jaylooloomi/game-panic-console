@@ -55,12 +55,12 @@ namespace PanicConsole.App
 
             UiFactory.Label(canvas.transform, "ctrl", 16, TextAnchor.MiddleCenter,
                 new Vector2(0, 0.01f), new Vector2(1, 0.09f)).text =
-                "P1: WASD 移動 / 空白鍵 放炸彈     P2: ←↑↓→ / Enter 放炸彈     |     R: 重來   1: 回單人";
+                "P1: WASD 移動 / 空白鍵 放炸彈     P2: ←↑↓→ / Enter 放炸彈     |     R: 重來   1: 回主畫面 (1v1)";
         }
 
         void Update()
         {
-            if (Input.GetKeyDown(KeyCode.Alpha1)) { SceneManager.LoadScene("Slice"); return; }
+            if (Input.GetKeyDown(KeyCode.Alpha1)) { SceneManager.LoadScene("Duel"); return; }
             float dt = Time.deltaTime;
 
             if (!_sim.IsOver)

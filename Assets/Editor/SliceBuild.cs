@@ -11,6 +11,7 @@ using UnityEngine;
 /// </summary>
 public static class SliceBuild
 {
+    const string DuelScenePath = "Assets/Scenes/Duel.unity";   // 新主模式：1v1 對戰（開場場景）
     const string ScenePath = "Assets/Scenes/Slice.unity";
     const string VersusScenePath = "Assets/Scenes/Versus.unity";
     const string BomberScenePath = "Assets/Scenes/Bomber.unity";
@@ -26,6 +27,12 @@ public static class SliceBuild
     static void CreateScenes()
     {
         Directory.CreateDirectory("Assets/Scenes");
+
+        // 主模式：1v1 對戰（建置索引 0 = 開場）
+        var duel = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
+        new GameObject("DuelGame").AddComponent<DuelGame>();
+        EditorSceneManager.SaveScene(duel, DuelScenePath);
+        Debug.Log("[SliceBuild] scene saved: " + DuelScenePath);
 
         var slice = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
         new GameObject("SliceGame").AddComponent<SliceGame>();
@@ -50,7 +57,7 @@ public static class SliceBuild
         Directory.CreateDirectory(OutDir);
         var options = new BuildPlayerOptions
         {
-            scenes = new[] { ScenePath, VersusScenePath, BomberScenePath },
+            scenes = new[] { DuelScenePath, ScenePath, VersusScenePath, BomberScenePath },
             locationPathName = OutExe,
             target = BuildTarget.StandaloneWindows64,
             options = BuildOptions.None

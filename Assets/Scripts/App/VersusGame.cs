@@ -64,7 +64,7 @@ namespace PanicConsole.App
 
             UiFactory.Label(canvas.transform, "ctrl", 16, TextAnchor.MiddleCenter,
                 new Vector2(0, 0.01f), new Vector2(1, 0.09f)).text =
-                "P1: A / D     P2: ← / →     |     R: 重新對戰     1: 回單人模式";
+                "P1: A / D     P2: ← / →     |     R: 重新對戰     1: 回主畫面 (1v1)";
         }
 
         void BuildMatch()
@@ -83,13 +83,13 @@ namespace PanicConsole.App
         {
             if (_over) return;
             _over = true;
-            _banner.text = $"P{winner} WIN!\n按 R 再戰　按 1 回單人";
+            _banner.text = $"P{winner} WIN!\n按 R 再戰　按 1 回主畫面";
             Debug.Log($"[Versus] P{winner} wins");
         }
 
         void Update()
         {
-            if (Input.GetKeyDown(KeyCode.Alpha1)) { SceneManager.LoadScene("Slice"); return; }
+            if (Input.GetKeyDown(KeyCode.Alpha1)) { SceneManager.LoadScene("Duel"); return; }
 
             float dt = Time.deltaTime;
 
